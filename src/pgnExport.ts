@@ -1,9 +1,11 @@
-import type AnalyseCtrl from './ctrl';
-
+import { INITIAL_FEN } from 'chessops/fen';
+import { Game, Ply, San } from './types';
 import { fixCrazySan, plyToTurn } from './utils';
 
-import { INITIAL_FEN } from 'chessops/fen';
-
+interface AnalyseCtrl {
+  data: { game: Game };
+  tree: Tree.TreeWrapper;
+}
 
 interface PgnNode {
   ply: Ply;
@@ -46,7 +48,7 @@ function renderPgnTags(game: Game): string {
 
 export function renderFullTxt(ctrl: AnalyseCtrl): string {
   const g = ctrl.data.game;
-  return renderPgnTags(g) + renderNodesTxt(ctrl.tree.root, true);
+  return renderPgnTags(g) + renderNodesTxt(ctrl.tree.root, true) + ' ' + g.result;
 }
 
 export function renderNodesHtml(nodes: PgnNode[]): MaybeVNodes {
@@ -58,7 +60,7 @@ export function renderNodesHtml(nodes: PgnNode[]): MaybeVNodes {
   nodes.forEach(node => {
     if (node.ply === 0) return;
     if (node.ply % 2 === 1) tags.push(h('index', (node.ply + 1) / 2 + '.'));
-    tags.push(h('san', fixCrazySan(node.san!)));
+    tags.push(fixCrazySan(nodes[0].san!));
   });
   return tags;
 }

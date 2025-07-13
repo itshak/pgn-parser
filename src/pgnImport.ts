@@ -1,4 +1,3 @@
-import type { AnalyseData, Game } from './interfaces';
 import { makeFen } from 'chessops/fen';
 import { makeSanAndPlay, parseSan } from 'chessops/san';
 import { makeUci, Rules } from 'chessops';
@@ -11,77 +10,64 @@ import {
   type PgnNodeData,
 } from 'chessops/pgn';
 import { IllegalSetup, type Position } from 'chessops/chess';
-import type { Player } from 'lib/game/game';
-
 import { scalachessCharPair } from 'chessops/compat';
+import { makeSquare } from 'chessops/util';
+import type { AnalyseData, Player, VariantKey, Ply, San, Uci } from './types';
 
-const readNode = (
-  node: ChildNode<PgnNodeData>,
-  pos: Position,
-  ply: number,
-  withChildren = true,
-): Tree.Node => {
+const traverse = (node: ChildNode<PgnNodeData>, pos: Position, ply: Ply): Tree.Node => {
   const move = parseSan(pos, node.data.san);
   if (!move) throw new Error(`Can't play ${node.data.san} at move ${Math.ceil(ply / 2)}, ply ${ply}`);
-  return {
+
+  const newNode: Tree.Node = {
     id: scalachessCharPair(move),
     ply,
     san: makeSanAndPlay(pos, move),
     fen: makeFen(pos.toSetup()),
     uci: makeUci(move),
-    children: withChildren ? node.children.map(child => readNode(child, pos.clone(), ply + 1)) : [],
+    children: node.children.map(child => traverse(child, pos.clone(), ply + 1)),
     check: pos.isCheck() ? makeSquare(pos.toSetup().board.kingOf(pos.turn)!) : undefined,
   };
+
+  return newNode;
 };
 
-export default function (pgn: string): Partial<AnalyseData> {
+export default function (pgn: string): AnalyseData {
   const game = parsePgn(pgn)[0];
   const headers = new Map(Array.from(game.headers, ([key, value]) => [key.toLowerCase(), value]));
   const start = startingPosition(game.headers).unwrap();
   const fen = makeFen(start.toSetup());
   const initialPly = (start.toSetup().fullmoves - 1) * 2 + (start.turn === 'white' ? 0 : 1);
-  const treeParts: Tree.Node[] = [
-    {
-      id: '',
-      ply: initialPly,
-      fen,
-      children: [],
-    },
-  ];
-  let tree = game.moves;
-  const pos = start;
-  const sidelines: Tree.Node[][] = [[]];
-  let index = 0;
-  while (tree.children.length) {
-    const [mainline, ...variations] = tree.children;
-    const ply = initialPly + index + 1;
-    sidelines.push(variations.map(variation => readNode(variation, pos.clone(), ply)));
-    treeParts.push(readNode(mainline, pos, ply, false));
-    tree = mainline;
-    index += 1;
-  }
+
+  const root: Tree.Node = {
+    id: '',
+    ply: initialPly,
+    fen,
+    children: game.moves.children.map(child => traverse(child, start.clone(), initialPly + 1)),
+  };
+
   const rules: Rules = parseVariant(headers.get('variant')) || 'chess';
   const variantKey: VariantKey = rulesToVariantKey[rules] || rules;
   const variantName = makeVariant(rules) || variantKey;
-  // TODO Improve types so that analysis data != game data
+
   return {
     game: {
       fen,
       id: 'synthetic',
       opening: undefined, // TODO
       player: start.turn,
+      result: game.headers.get('Result') || '*-',
       status: { id: 20, name: 'started' },
-      turns: treeParts.length,
+      turns: root.children.length > 0 ? Math.ceil(root.children[root.children.length - 1].ply / 2) : 0,
       variant: {
         key: variantKey,
         name: variantName,
         short: variantName,
       },
-    } as Game,
+    },
     player: { color: 'white' } as Player,
     opponent: { color: 'black' } as Player,
-    treeParts,
-    sidelines,
+    treeParts: [root],
+    sidelines: [],
     userAnalysis: true,
   };
 }
