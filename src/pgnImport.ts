@@ -13,7 +13,7 @@ import {
 import { IllegalSetup, type Position } from 'chessops/chess';
 import type { Player } from 'lib/game/game';
 
-import { makeSquare } from 'chessops/util';
+import { scalachessCharPair } from 'chessops/compat';
 
 const readNode = (
   node: ChildNode<PgnNodeData>,
