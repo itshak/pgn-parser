@@ -1,0 +1,16 @@
+{
+  "name": "pgn-parser",
+  "version": "1.0.0",
+  "description": "A standalone library for parsing and manipulating PGN files, extracted from Lichess.org.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "chessops": "^0.14.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
