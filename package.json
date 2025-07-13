@@ -11,6 +11,9 @@
   "dependencies": {
     "chessops": "^0.14.2"
   },
+  "workspaces": [
+    "pgn-react-app"
+  ],
   "devDependencies": {
     "jsdom": "^26.1.0",
     "typescript": "^5.8.3",
