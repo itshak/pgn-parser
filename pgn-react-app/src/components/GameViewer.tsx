@@ -14,12 +14,14 @@ type TreeWrapper = any; // pgn-parser lacks d.ts – use any for now
 
 interface Props {
   pgn: string;
+  onPgnChange: (pgn: string) => void;
 }
 
-const GameViewer: React.FC<Props> = ({ pgn }) => {
+const GameViewer: React.FC<Props> = ({ pgn, onPgnChange }) => {
   /* immutable after PGN load */
   const [tree, setTree] = useState<TreeWrapper | null>(null);
   const [rootFen, setRootFen] = useState("");
+  const [gameData, setGameData] = useState<any>(null);
 
   /* single mutable state – current path in the move tree */
   const [path, setPath] = useState("");
@@ -30,7 +32,19 @@ const GameViewer: React.FC<Props> = ({ pgn }) => {
     setRootFen(analyse.game.fen);
     setTree(buildTree(analyse.treeParts[0]));
     setPath("");
+    setGameData(analyse.game);
   }, [pgn]);
+
+  /* call onPgnChange when tree updates */
+  useEffect(() => {
+    if (tree && gameData) {
+      const analyseCtrl = {
+        data: { game: gameData },
+        tree: tree,
+      };
+      onPgnChange(pgnExport.renderFullTxt(analyseCtrl));
+    }
+  }, [tree, gameData, onPgnChange]);
 
   /* helpers derived from tree + path */
   const currentNode = useMemo(() => {
