@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { Chess, Move } from "chess.js";
 import { Chessboard } from "react-chessboard";
-import { buildTree, pgnImport } from "pgn-parser";
+import { buildTree, pgnImport, pgnExport } from "pgn-parser";
 
 type TreeWrapper = any; // pgn-parser lacks d.ts – use any for now
 
@@ -96,17 +96,18 @@ const GameViewer: React.FC<Props> = ({ pgn }) => {
       const result = chess.move(moveObj);
       if (!result) return false; // illegal
 
-      const newNode: any = {
-        id: result.from + result.to + (result.promotion ?? ""),
-        ply: currentNode ? currentNode.ply + 1 : 1,
-        san: result.san,
-        fen: chess.fen(),
-        uci: result.from + result.to + (result.promotion ?? ""),
-        children: [],
-      };
+      const newMovePgn = `[FEN "${fen}"] ${result.san}`;
+      const newMoveAnalysis = pgnImport(newMovePgn);
+      const newMoveNode = buildTree(newMoveAnalysis.treeParts[0]).root.children[0];
 
-      const newPath = tree.addNode(newNode, path);
-      setPath(newPath || path);
+      const newPath = tree.addNode(newMoveNode, path);
+      if (newPath) {
+        setPath(newPath);
+        const newRoot = JSON.parse(JSON.stringify(tree.root));
+        setTree(buildTree(newRoot));
+      } else {
+        console.warn("addNode returned undefined, path not updated.");
+      }
       return true;
     },
     [tree, path, fen, currentNode]
