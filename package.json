@@ -1,13 +1,28 @@
 {
-  "name": "pgn-parser",
+  "name": "pgn-chess-tree",
   "version": "1.0.0",
   "description": "A standalone library for parsing and manipulating PGN files, extracted from Lichess.org.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepare": "npm run build"
   },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [
+    "pgn",
+    "chess",
+    "parser",
+    "tree",
+    "lichess"
+  ],
   "dependencies": {
     "chessops": "^0.14.2"
   },

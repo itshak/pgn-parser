@@ -16,10 +16,13 @@ export interface Game {
   turns: number;
   variant: { key: VariantKey; name: string; short: string };
   result?: string;
+  white?: { name: string };
+  black?: { name: string };
 }
 
 export interface Player {
   color: string;
+  name?: string;
 }
 
 export type VariantKey =
@@ -36,6 +39,8 @@ export type VariantKey =
 export type Ply = number;
 export type San = string;
 export type Uci = string;
+export type Square = string;
+export type Eval = { cp: number, best: San };
 
 declare global {
   namespace Tree {
@@ -46,6 +51,7 @@ declare global {
       fen: string;
       uci: Uci;
       children: Node[];
+      eval?: Eval;
       check?: Square;
       dests?: string;
       drops?: string;

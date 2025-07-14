@@ -78,10 +78,10 @@ export const onClickAway =
   (f: () => void) =>
   (el: HTMLElement): void => {
     const listen: () => void = () =>
-      $(document).one('click', e => {
-        if (!document.contains(el)) return;
-        if (el.contains(e.target)) listen();
-        else f();
+      document.addEventListener('click', function listener(e) {
+        if (!document.body.contains(el)) document.removeEventListener('click', listener);
+        if (el.contains(e.target as Node)) return;
+        f();
       });
     setTimeout(listen, 300);
   };

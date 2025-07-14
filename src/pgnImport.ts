@@ -42,12 +42,16 @@ export default function (pgn: string): AnalyseData {
     id: '',
     ply: initialPly,
     fen,
+    uci: '',
     children: game.moves.children.map(child => traverse(child, start.clone(), initialPly + 1)),
   };
 
   const rules: Rules = parseVariant(headers.get('variant')) || 'chess';
   const variantKey: VariantKey = rulesToVariantKey[rules] || rules;
   const variantName = makeVariant(rules) || variantKey;
+
+  const white = headers.get('white');
+  const black = headers.get('black');
 
   return {
     game: {
@@ -63,9 +67,11 @@ export default function (pgn: string): AnalyseData {
         name: variantName,
         short: variantName,
       },
+      white: white ? { name: white } : undefined,
+      black: black ? { name: black } : undefined,
     },
-    player: { color: 'white' } as Player,
-    opponent: { color: 'black' } as Player,
+    player: { color: 'white', name: white } as Player,
+    opponent: { color: 'black', name: black } as Player,
     treeParts: [root],
     sidelines: [],
     userAnalysis: true,

@@ -9,7 +9,7 @@ export type MaybeNode = Tree.Node | undefined;
 export interface TreeWrapper {
   root: Tree.Node;
   lastPly(): number;
-  nodeAtPath(path: Tree.Path): Tree.Node;
+  nodeAtPath(path: Tree.Path): Tree.Node | undefined;
   getNodeList(path: Tree.Path): Tree.Node[];
   longestValidPath(path: string): Tree.Path;
   updateAt(path: Tree.Path, update: (node: Tree.Node) => void): MaybeNode;
@@ -32,7 +32,7 @@ export interface TreeWrapper {
   getCurrentNodesAfterPly(nodeList: Tree.Node[], mainline: Tree.Node[], ply: number): Tree.Node[];
   merge(tree: Tree.Node): void;
   removeCeval(): void;
-  parentNode(path: Tree.Path): Tree.Node;
+  parentNode(path: Tree.Path): Tree.Node | undefined;
   getParentClock(node: Tree.Node, path: Tree.Path): Tree.Clock | undefined;
   walkUntilTrue(
     fn: (node: Tree.Node, isMainline: boolean) => boolean,
@@ -43,14 +43,6 @@ export interface TreeWrapper {
 
 export function build(root: Tree.Node): TreeWrapper {
   const lastNode = (): MaybeNode => ops.findInMainline(root, (node: Tree.Node) => !node.children.length);
-
-  const nodeAtPath = (path: Tree.Path): Tree.Node => nodeAtPathFrom(root, path);
-
-  function nodeAtPathFrom(node: Tree.Node, path: Tree.Path): Tree.Node {
-    if (path === '') return node;
-    const child = ops.childById(node, treePath.head(path));
-    return child ? nodeAtPathFrom(child, treePath.tail(path)) : node;
-  }
 
   const nodeAtPathOrNull = (path: Tree.Path): Tree.Node | undefined => nodeAtPathOrNullFrom(root, path);
 
@@ -105,7 +97,7 @@ export function build(root: Tree.Node): TreeWrapper {
     });
 
   const extendPath = (path: Tree.Path, isMainline: boolean): Tree.Path => {
-    let currNode = nodeAtPath(path);
+    let currNode = nodeAtPathOrNull(path);
     while ((currNode = currNode?.children[0]) && !(isMainline && currNode.forceVariation))
       path += currNode.id;
     return path;
@@ -144,7 +136,10 @@ export function build(root: Tree.Node): TreeWrapper {
     return newPath ? addNodes(nodes.slice(1), newPath) : undefined;
   }
 
-  const deleteNodeAt = (path: Tree.Path): void => ops.removeChild(parentNode(path), treePath.last(path));
+  const deleteNodeAt = (path: Tree.Path): void => {
+    const parent = parentNode(path);
+    if (parent) ops.removeChild(parent, treePath.last(path));
+  };
 
   function promoteAt(path: Tree.Path, toMainline: boolean): void {
     const nodes = getNodeList(path);
@@ -185,10 +180,12 @@ export function build(root: Tree.Node): TreeWrapper {
       node.glyphs = glyphs;
     });
 
-  const parentNode = (path: Tree.Path): Tree.Node => nodeAtPath(treePath.init(path));
+  const parentNode = (path: Tree.Path): Tree.Node | undefined => nodeAtPathOrNull(treePath.init(path));
 
-  const getParentClock = (node: Tree.Node, path: Tree.Path): Tree.Clock | undefined =>
-    path ? parentNode(path).clock : node.clock;
+  const getParentClock = (node: Tree.Node, path: Tree.Path): Tree.Clock | undefined => {
+    const parent = parentNode(path);
+    return parent ? parent.clock : node.clock;
+  };
 
   function walkUntilTrue(
     fn: (node: Tree.Node, isMainline: boolean) => boolean,
@@ -213,7 +210,7 @@ export function build(root: Tree.Node): TreeWrapper {
   return {
     root,
     lastPly: (): number => lastNode()?.ply || root.ply,
-    nodeAtPath,
+    nodeAtPath: nodeAtPathOrNull,
     getNodeList,
     longestValidPath: (path: string) => longestValidPathFrom(root, path),
     updateAt,
@@ -249,11 +246,9 @@ export function build(root: Tree.Node): TreeWrapper {
     merge: (tree: Tree.Node) => ops.merge(root, tree),
     removeCeval: () =>
       ops.updateAll(root, function (n) {
-        delete n.ceval;
-        delete n.threat;
       }),
     parentNode,
     getParentClock,
     walkUntilTrue,
-  };
+  } as TreeWrapper;
 }

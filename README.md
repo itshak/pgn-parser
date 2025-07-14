@@ -1,243 +1,285 @@
-# PGN Parser
+# PGN Chess Tree
 
-This library is a standalone PGN parser extracted from the Lichess.org source code. It provides a simple and efficient way to parse, manipulate, and export PGN files.
+`pgn-chess-tree` is a lightweight and powerful JavaScript/TypeScript library for parsing, manipulating, and exporting PGN (Portable Game Notation) chess game data. It provides a comprehensive tree-based structure to manage game variations, making it ideal for applications requiring deep analysis or interactive game playback.
+
+This library is inspired by and adapted from parts of the open-source Lichess.org project, ensuring robust and efficient handling of PGN data.
+
+## Features
+
+-   **PGN Parsing & Exporting**: Easily import PGN strings into a structured game tree and export game trees back into PGN format.
+-   **Game Tree Manipulation**: Add, remove, promote, and navigate through game variations with a clear API.
+-   **Type-Safe**: Written in TypeScript, providing strong type definitions for a more reliable development experience.
+-   **Framework Agnostic**: Designed to work seamlessly with any JavaScript framework, including React, Vue, Angular, or plain JavaScript.
 
 ## Installation
 
-This library is not available on npm. You can install it directly from its GitHub repository:
+Install `pgn-chess-tree` via npm or yarn:
 
 ```bash
-npm install https://github.com/itshak/pgn-parser
-# or, if you use yarn
-yarn add https://github.com/itshak/pgn-parser
+npm install pgn-chess-tree
+# or
+yarn add pgn-chess-tree
 ```
 
 ## Usage
 
-### Basic Usage
+## Usage
+
+### Basic PGN Import and Export
 
 ```typescript
-import { pgnImport, pgnExport, buildTree } from 'pgn-parser';
+import { pgnImport, pgnExport, buildTree } from 'pgn-chess-tree';
 
-const pgn = '[Event "Test"]\n[Site "Test"]\n[Date "2025.07.13"]\n[Round "-"]\n[White "Test"]\n[Black "Test"]\n[Result "*"]\n\n1. e4 e5 *';
+const pgn = `[Event "Test Game"]
+[Site "Example.com"]
+[Date "2025.07.14"]
+[Round "1"]
+[White "Player One"]
+[Black "Player Two"]
+[Result "1-0"]
 
-const importedPgn = pgnImport(pgn);
+1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. b4 Bxb4 5. c3 Ba5 6. d4 exd4 7. O-O Nge7 8. cxd4 d5 9. exd5 Nxd5 10. Qb3 Nce7 11. Ba3 c6 12. Bxe7 Nxe7 13. Bxf7+ Kf8 14. Bh5 g6 15. Ne5 Kg7 16. Qf7+ Kh6 17. Ng4+ Kg5 18. f4+ Kxh5 19. Nf6+ Kh6 20. g4 g5 21. Qh5+ Kg7 22. Qxg5+ Kf7 23. Qh5+ Kg7 24. g5 Ng6 25. Qh6+ Kf7 26. Qg7+ Kxg7 27. Nh5+ Kf7 28. f5 Ne7 29. g6+ hxg6 30. fxg6+ Ke6 31. Rf6+ Kd7 32. g7 Rg8 33. Rf8 Ng6 34. Nf6+ Ke7 35. Nxg8+ Kd7 36. Nf6+ Ke7 37. g8=Q Nxf8 38. Qg7+ Ke6 39. d5+ Kd6 40. Ne4# 1-0`;
 
-if (importedPgn) {
-  const tree = buildTree(importedPgn.treeParts[0]);
+const importedData = pgnImport(pgn);
 
-  // ... manipulate the tree
+if (importedData) {
+  // The root of the game tree
+  const tree = buildTree(importedData.treeParts[0]);
 
+  // Access game metadata
+  console.log("White Player:", importedData.game.white?.name);
+  console.log("Black Player:", importedData.game.black?.name);
+  console.log("Result:", importedData.game.result);
+
+  // Export the game tree back to PGN
   const exportedPgn = pgnExport.renderFullTxt({
-    data: { game: importedPgn.game },
+    data: { game: importedData.game },
     tree,
   });
 
-  console.log(exportedPgn);
+  console.log("\nExported PGN:\n", exportedPgn);
 }
 ```
 
-### Advanced Usage: React Integration
+### Manipulating the Game Tree
 
-This example demonstrates how to integrate `pgn-parser` into a React component to manage chess game state, handle moves, and persist changes. It uses `chess.js` for move validation and `react-chessboard` for the UI.
+`pgn-chess-tree` allows for detailed manipulation of the game tree, including adding moves, navigating variations, and managing comments.
 
 ```typescript
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  KeyboardEvent,
-} from "react";
-import { Chess, Move } from "chess.js";
-import { Chessboard } from "react-chessboard";
-import { buildTree, pgnImport, pgnExport, path } from "pgn-parser";
+import { pgnImport, buildTree } from 'pgn-chess-tree';
 
-type TreeWrapper = any; // pgn-parser lacks d.ts – use any for now
+const pgn = `[Event "Test"]
+[Site "Test"]
+[Date "2025.07.14"]
+[Round "-"]
+[White "Player One"]
+[Black "Player Two"]
+[Result "*"]
 
-interface Props {
-  pgn: string;
-  onPgnChange: (pgn: string) => void;
+1. e4 e5`;
+
+const importedData = pgnImport(pgn);
+
+if (importedData) {
+  const tree = buildTree(importedData.treeParts[0]);
+
+  // Navigate to a specific node (e.g., after 1. e4 e5)
+  // Node IDs are generated based on the UCI move, e.g., 'e2e4' for 1. e4
+  const firstMoveNode = tree.root.children[0]; // 1. e4
+  const secondMoveNode = firstMoveNode.children[0]; // 1... e5
+  const pathToE5 = firstMoveNode.id + secondMoveNode.id;
+
+  console.log("Current path:", pathToE5);
+  const currentNode = tree.nodeAtPath(pathToE5);
+  console.log("Current SAN:", currentNode?.san);
+
+  // Add a comment to the current node
+  tree.setCommentAt({ id: 'my-comment', text: 'This is a great move!' }, pathToE5);
+  console.log("Comment added:", tree.nodeAtPath(pathToE5)?.comments);
+
+  // Add a new variation (e.g., 2. d4 after 1. e4)
+  // You would typically get this new node from parsing a new PGN snippet
+  // For demonstration, we'll create a dummy node.
+  const dummyNewNode: Tree.Node = {
+    id: 'd2d4', // UCI for d4
+    ply: 3, // Ply after 1. e4 e5
+    san: 'd4',
+    fen: '', // Actual FEN would be calculated
+    uci: 'd2d4',
+    children: [],
+  };
+  const newPath = tree.addNode(dummyNewNode, firstMoveNode.id); // Add after 1. e4
+  console.log("New variation added at path:", newPath);
+  console.log("Children of 1. e4:", tree.root.children[0].children.map(n => n.san));
+
+  // Promote a variation to the mainline
+  // Let's say we want to make 1. d4 the mainline instead of 1. e4
+  // This is a more complex operation and usually involves re-ordering children
+  // For simplicity, we'll promote the dummy node we just added.
+  if (newPath) {
+    tree.promoteAt(newPath, true);
+    console.log("New mainline after promotion:", tree.root.children[0].san);
+  }
 }
-
-const GameViewer: React.FC<Props> = ({ pgn, onPgnChange }) => {
-  /* immutable after PGN load */
-  const [tree, setTree] = useState<TreeWrapper | null>(null);
-  const [rootFen, setRootFen] = useState("");
-  const [gameData, setGameData] = useState<any>(null);
-
-  /* single mutable state – current path in the move tree */
-  const [path, setPath] = useState("");
-
-  /* build tree once when PGN changes */
-  useEffect(() => {
-    const analyse = pgnImport(pgn);
-    setRootFen(analyse.game.fen);
-    setTree(buildTree(analyse.treeParts[0]));
-    setPath("");
-    setGameData(analyse.game);
-  }, [pgn]);
-
-  /* call onPgnChange when tree updates */
-  useEffect(() => {
-    if (tree && gameData) {
-      const analyseCtrl = {
-        data: { game: gameData },
-        tree: tree,
-      };
-      onPgnChange(pgnExport.renderFullTxt(analyseCtrl));
-    }
-  }, [tree, gameData, onPgnChange]);
-
-  /* helpers derived from tree + path */
-  const currentNode = useMemo(() => {
-    if (!tree) return undefined;
-    return tree.nodeAtPath(path);
-  }, [tree, path]);
-
-  const fen = useMemo(() => {
-    if (!tree) return rootFen;
-    const chess = new Chess(rootFen || undefined);
-    const nodes: any[] = tree.getNodeList(path);
-    nodes.slice(1).forEach((n) => {
-      if (n.uci)
-        chess.move({
-          from: n.uci.slice(0, 2),
-          to: n.uci.slice(2, 4),
-          promotion: n.uci.slice(4) || undefined,
-        } as any);
-    });
-    return chess.fen();
-  }, [tree, path, rootFen]);
-
-  const nextMoves: { id: string; san: string; isMain: boolean }[] =
-    useMemo(() => {
-      if (!currentNode) return [];
-      return currentNode.children.map((c: any, idx: number) => ({
-        id: c.id,
-        san: c.san ?? "",
-        isMain: idx === 0,
-      }));
-    }, [currentNode]);
-
-  /* keyboard navigation */
-  const parentPath = path.length > 1 ? path.slice(0, -2) : "";
-  const handleKey = useCallback(
-    (e: KeyboardEvent<HTMLDivElement>) => {
-      if (!tree) return;
-      if (e.key === "ArrowLeft" && path !== "") setPath(parentPath);
-      else if (e.key === "ArrowRight" && nextMoves.length)
-        setPath(path + nextMoves[0].id);
-    },
-    [path, parentPath, nextMoves, tree]
-  );
-
-  /* board interaction */
-  const onPieceDrop = useCallback(
-    (source: string, target: string) => {
-      if (!tree) return false;
-      const chess = new Chess(fen);
-
-      // decide if promotion needed
-      const piece = chess.get(source as any);
-      const needsPromotion =
-        piece?.type === "p" &&
-        ((piece.color === "w" && target[1] === "8") ||
-          (piece.color === "b" && target[1] === "1"));
-      const moveObj: Move & { promotion?: string } = {
-        from: source,
-        to: target,
-      } as any;
-      if (needsPromotion) moveObj.promotion = "q";
-
-      const result = chess.move(moveObj);
-      if (!result) return false; // illegal
-
-      const newMovePgn = `[FEN "${fen}"] ${result.san}`;
-      const newMoveAnalysis = pgnImport(newMovePgn);
-      const newMoveNode = buildTree(newMoveAnalysis.treeParts[0]).root.children[0];
-
-      const newPath = tree.addNode(newMoveNode, path);
-      if (newPath) {
-        setPath(newPath);
-        const newRoot = JSON.parse(JSON.stringify(tree.root));
-        setTree(buildTree(newRoot));
-      } else {
-        console.warn("addNode returned undefined, path not updated.");
-      }
-      return true;
-    },
-    [tree, path, fen, currentNode]
-  );
-
-  /* render */
-  return (
-    <div
-      tabIndex={0}
-      onKeyDown={handleKey}
-      style={{ marginTop: 16, outline: "none" }}
-    >
-      <Chessboard position={fen} onPieceDrop={onPieceDrop} boardWidth={400} />
-
-      {/* last move */}
-      <div style={{ marginTop: 12 }}>
-        <strong>Last move:</strong>{" "}
-        {currentNode && currentNode.san
-          ? `${Math.ceil(currentNode.ply / 2)}${
-              currentNode.ply % 2 ? "." : "..."
-            } ${currentNode.san}`
-          : "-"}
-      </div>
-
-      {/* next moves */}
-      <div style={{ marginTop: 12 }}>
-        <strong>Next moves:</strong>
-        {nextMoves.length === 0 ? (
-          <em> none</em>
-        ) : (
-          <ul style={{ listStyle: "none", padding: 0 }}>
-            {nextMoves.map((m) => (
-              <li key={m.id} style={{ marginBottom: 4 }}>
-                <button
-                  style={{
-                    background: m.isMain ? "#1976d2" : "#eee",
-                    color: m.isMain ? "#fff" : "#000",
-                    border: "none",
-                    padding: "2px 6px",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => setPath(path + m.id)}
-                >
-                  {m.san}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default GameViewer;
 ```
 
 
 
 
 
-## API
+## API Reference
 
-### `pgnImport(pgn: string): Partial<AnalyseData> | undefined`
+### `pgnImport(pgn: string): AnalyseData | undefined`
 
-Parses a PGN string and returns an object with the parsed data. The `AnalyseData` interface is defined in the Lichess source code.
+Parses a PGN string and returns an `AnalyseData` object containing the game's metadata and the root of the game tree. Returns `undefined` if parsing fails.
 
-### `pgnExport.renderFullTxt(ctrl: AnalyseCtrl): string`
+**Parameters**:
+- `pgn`: The PGN string to parse.
 
-Exports a game tree to a PGN string. The `AnalyseCtrl` interface is defined in the Lichess source code.
+**Returns**:
+- `AnalyseData | undefined`: An object containing game data and the tree, or `undefined`.
 
-### `buildTree(root: Tree.Node): TreeWrapper`
+### `pgnExport.renderFullTxt(ctrl: { data: { game: Game }, tree: TreeWrapper }): string`
 
-Builds a game tree from a root node. The `Tree.Node` and `TreeWrapper` interfaces are defined in the Lichess source code.
+Exports a game tree and its associated game data into a PGN string.
 
+**Parameters**:
+- `ctrl`: An object containing:
+  - `data.game`: The `Game` object with metadata.
+  - `tree`: The `TreeWrapper` instance representing the game tree.
+
+**Returns**:
+- `string`: The PGN string representation of the game.
+
+### `buildTree(rootNode: Tree.Node): TreeWrapper`
+
+Constructs a `TreeWrapper` instance from a root `Tree.Node`, providing methods for navigating and manipulating the game tree.
+
+**Parameters**:
+- `rootNode`: The root node of the game tree, typically obtained from `pgnImport`'s `treeParts[0]`.
+
+**Returns**:
+- `TreeWrapper`: An object with methods to interact with the game tree.
+
+### `TreeWrapper` Methods
+
+The `TreeWrapper` object returned by `buildTree` provides the following key methods:
+
+-   `nodeAtPath(path: Tree.Path): Tree.Node | undefined`:
+    Retrieves a node at a specific path in the tree. A `Tree.Path` is a string concatenation of node IDs (UCI moves).
+
+-   `getNodeList(path: Tree.Path): Tree.Node[]`:
+    Returns an array of nodes from the root to the node at the specified path.
+
+-   `addNode(node: Tree.Node, parentPath: Tree.Path): Tree.Path | undefined`:
+    Adds a new node (move) to the tree at the given parent path. Returns the new node's full path if successful.
+
+-   `setCommentAt(comment: Tree.Comment, path: Tree.Path): void`:
+    Adds or updates a comment at a specific node.
+
+-   `deleteCommentAt(id: string, path: Tree.Path): void`:
+    Deletes a comment from a specific node by its ID.
+
+-   `promoteAt(path: Tree.Path, toMainline: boolean): void`:
+    Promotes a variation at the given path. If `toMainline` is `true`, it attempts to make the variation the new mainline.
+
+-   `deleteNodeAt(path: Tree.Path): void`:
+    Deletes the node at the specified path and all its children.
+
+### Type Definitions
+
+Key interfaces and types used throughout the library:
+
+```typescript
+// src/types.ts
+
+export interface AnalyseData {
+  game: Game;
+  player: Player;
+  opponent: Player;
+  treeParts: Tree.Node[];
+  sidelines: Tree.Node[][];
+  userAnalysis: boolean;
+}
+
+export interface Game {
+  fen: string;
+  id: string;
+  opening: any;
+  player: any;
+  status: { id: number; name: string };
+  turns: number;
+  variant: { key: VariantKey; name: string; short: string };
+  result?: string;
+  white?: { name: string };
+  black?: { name: string };
+}
+
+export interface Player {
+  color: string;
+  name?: string;
+}
+
+export type VariantKey =
+  | 'standard'
+  | 'chess960'
+  | 'kingOfTheHill'
+  | 'threeCheck'
+  | 'antichess'
+  | 'atomic'
+  | 'horde'
+  | 'racingKings'
+  | 'crazyhouse';
+
+export type Ply = number;
+export type San = string;
+export type Uci = string;
+export type Square = string;
+export type Eval = { cp: number, best: San };
+
+declare global {
+  namespace Tree {
+    interface Node {
+      id: string; // UCI move, e.g., 'e2e4'
+      ply: Ply;
+      san?: San; // Standard Algebraic Notation
+      fen: string; // FEN after the move
+      uci: Uci; // Universal Chess Interface move
+      children: Node[]; // Variations
+      eval?: Eval; // Evaluation data
+      check?: Square; // Square of the king if in check
+      dests?: string; // Possible destinations for pieces (Lichess specific)
+      drops?: string; // Possible drops for pieces (Crazyhouse specific)
+      comments?: Comment[];
+      glyphs?: Glyph[];
+      clock?: Clock;
+      shapes?: Shape[];
+      forceVariation?: boolean; // Indicates a forced variation
+    }
+
+    type Path = string; // Concatenation of node IDs
+
+    interface Comment {
+      id: string;
+      text: string;
+    }
+
+    interface Glyph {
+      symbol: string;
+      name: string;
+    }
+
+    interface Clock {
+      white: number;
+      black: number;
+    }
+
+    interface Shape {
+      orig: string;
+      dest?: string;
+      brush: string;
+      piece?: string;
+    }
+  }
+}
 ```

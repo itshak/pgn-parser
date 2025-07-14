@@ -1,0 +1,25 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.intersection = exports.isChildOf = exports.fromNodeList = exports.contains = exports.last = exports.init = exports.tail = exports.head = exports.size = exports.root = void 0;
+exports.root = '';
+const size = (path) => path.length / 2;
+exports.size = size;
+const head = (path) => path.slice(0, 2);
+exports.head = head;
+const tail = (path) => path.slice(2);
+exports.tail = tail;
+const init = (path) => path.slice(0, -2);
+exports.init = init;
+const last = (path) => path.slice(-2);
+exports.last = last;
+const contains = (p1, p2) => p1.startsWith(p2);
+exports.contains = contains;
+const fromNodeList = (nodes) => nodes.map(n => n.id).join('');
+exports.fromNodeList = fromNodeList;
+const isChildOf = (child, parent) => !!child && child.slice(0, -2) === parent;
+exports.isChildOf = isChildOf;
+const intersection = (p1, p2) => {
+    const head1 = (0, exports.head)(p1), head2 = (0, exports.head)(p2);
+    return head1 !== '' && head1 === head2 ? head1 + (0, exports.intersection)((0, exports.tail)(p1), (0, exports.tail)(p2)) : '';
+};
+exports.intersection = intersection;
