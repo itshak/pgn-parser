@@ -1,14 +1,19 @@
+// GamesList.tsx
+// This component displays a list of games loaded from the PGN file.
+// It allows the user to select a game to view.
+
 import React from 'react';
 
+// Represents a single chess game in the list.
 interface GameEntry {
-  index: number;
-  pgn: string;
+  index: number; // The original index of the game in the file.
+  pgn: string;   // The PGN content of the game.
 }
 
 interface Props {
-  games: GameEntry[];
-  selected: number;
-  onSelect: (g: GameEntry) => void;
+  games: GameEntry[]; // The list of games to display.
+  selected: number;   // The index of the currently selected game.
+  onSelect: (g: GameEntry) => void; // Callback to notify when a game is selected.
 }
 
 const GamesList: React.FC<Props> = ({ games, onSelect, selected }) => (

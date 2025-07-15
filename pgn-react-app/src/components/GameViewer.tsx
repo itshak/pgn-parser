@@ -1,4 +1,7 @@
-// --- CLEAN REWRITE (single-source-of-truth: path) ---
+// GameViewer.tsx
+// This component is the core of the chess game interaction.
+// It displays the chessboard, handles user moves, and shows game variations.
+
 import React, {
   useCallback,
   useEffect,
@@ -10,23 +13,27 @@ import { Chess, Move } from "chess.js";
 import { Chessboard } from "react-chessboard";
 import { buildTree, pgnImport, pgnExport } from "pgn-parser";
 
-type TreeWrapper = any; // pgn-parser lacks d.ts – use any for now
+// The pgn-parser library lacks TypeScript definitions, so we use 'any' for now.
+type TreeWrapper = any;
 
 interface Props {
-  pgn: string;
-  onPgnChange: (pgn: string) => void;
+  pgn: string; // The PGN string of the game to display.
+  onPgnChange: (pgn: string) => void; // Callback to notify when the PGN changes.
 }
 
 const GameViewer: React.FC<Props> = ({ pgn, onPgnChange }) => {
-  /* immutable after PGN load */
+  // The move tree, which is the primary data structure for the game.
   const [tree, setTree] = useState<TreeWrapper | null>(null);
+  // The FEN string of the root position of the game.
   const [rootFen, setRootFen] = useState("");
+  // Additional game data extracted from the PGN headers.
   const [gameData, setGameData] = useState<any>(null);
 
-  /* single mutable state – current path in the move tree */
+  // The current path in the move tree, representing the current board position.
   const [path, setPath] = useState("");
 
-  /* build tree once when PGN changes */
+  // This effect is triggered whenever the PGN string changes.
+  // It parses the PGN, builds the move tree, and initializes the component's state.
   useEffect(() => {
     const analyse = pgnImport(pgn);
     setRootFen(analyse.game.fen);
@@ -35,7 +42,8 @@ const GameViewer: React.FC<Props> = ({ pgn, onPgnChange }) => {
     setGameData(analyse.game);
   }, [pgn]);
 
-  /* call onPgnChange when tree updates */
+  // This effect is triggered whenever the move tree or game data changes.
+  // It exports the current game state to a PGN string and calls the onPgnChange callback.
   useEffect(() => {
     if (tree && gameData) {
       const analyseCtrl = {
@@ -46,12 +54,13 @@ const GameViewer: React.FC<Props> = ({ pgn, onPgnChange }) => {
     }
   }, [tree, gameData, onPgnChange]);
 
-  /* helpers derived from tree + path */
+  // Memoized value for the current node in the move tree.
   const currentNode = useMemo(() => {
     if (!tree) return undefined;
     return tree.nodeAtPath(path);
   }, [tree, path]);
 
+  // Memoized value for the FEN string of the current board position.
   const fen = useMemo(() => {
     if (!tree) return rootFen;
     const chess = new Chess(rootFen || undefined);
@@ -67,6 +76,7 @@ const GameViewer: React.FC<Props> = ({ pgn, onPgnChange }) => {
     return chess.fen();
   }, [tree, path, rootFen]);
 
+  // Memoized list of next possible moves from the current position.
   const nextMoves: { id: string; san: string; isMain: boolean }[] =
     useMemo(() => {
       if (!currentNode) return [];
@@ -77,7 +87,7 @@ const GameViewer: React.FC<Props> = ({ pgn, onPgnChange }) => {
       }));
     }, [currentNode]);
 
-  /* keyboard navigation */
+  // Handles keyboard navigation (left and right arrow keys).
   const parentPath = path.length > 1 ? path.slice(0, -2) : "";
   const handleKey = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
@@ -89,13 +99,13 @@ const GameViewer: React.FC<Props> = ({ pgn, onPgnChange }) => {
     [path, parentPath, nextMoves, tree]
   );
 
-  /* board interaction */
+  // Handles a piece being dropped on the board to make a move.
   const onPieceDrop = useCallback(
     (source: string, target: string) => {
       if (!tree) return false;
       const chess = new Chess(fen);
 
-      // decide if promotion needed
+      // Check if a promotion is needed for the move.
       const piece = chess.get(source as any);
       const needsPromotion =
         piece?.type === "p" &&
@@ -105,11 +115,12 @@ const GameViewer: React.FC<Props> = ({ pgn, onPgnChange }) => {
         from: source,
         to: target,
       } as any;
-      if (needsPromotion) moveObj.promotion = "q";
+      if (needsPromotion) moveObj.promotion = "q"; // Default to queen promotion.
 
       const result = chess.move(moveObj);
-      if (!result) return false; // illegal
+      if (!result) return false; // Illegal move.
 
+      // Create a new move node and add it to the tree.
       const newMovePgn = `[FEN "${fen}"] ${result.san}`;
       const newMoveAnalysis = pgnImport(newMovePgn);
       const newMoveNode = buildTree(newMoveAnalysis.treeParts[0]).root.children[0];
@@ -117,6 +128,7 @@ const GameViewer: React.FC<Props> = ({ pgn, onPgnChange }) => {
       const newPath = tree.addNode(newMoveNode, path);
       if (newPath) {
         setPath(newPath);
+        // Create a new tree object to trigger a re-render.
         const newRoot = JSON.parse(JSON.stringify(tree.root));
         setTree(buildTree(newRoot));
       } else {
@@ -127,7 +139,6 @@ const GameViewer: React.FC<Props> = ({ pgn, onPgnChange }) => {
     [tree, path, fen, currentNode]
   );
 
-  /* render */
   return (
     <div
       tabIndex={0}
@@ -136,7 +147,7 @@ const GameViewer: React.FC<Props> = ({ pgn, onPgnChange }) => {
     >
       <Chessboard position={fen} onPieceDrop={onPieceDrop} boardWidth={400} />
 
-      {/* last move */}
+      {/* Display the last move made. */}
       <div style={{ marginTop: 12 }}>
         <strong>Last move:</strong>{" "}
         {currentNode && currentNode.san
@@ -146,7 +157,7 @@ const GameViewer: React.FC<Props> = ({ pgn, onPgnChange }) => {
           : "-"}
       </div>
 
-      {/* next moves */}
+      {/* Display the list of next possible moves. */}
       <div style={{ marginTop: 12 }}>
         <strong>Next moves:</strong>
         {nextMoves.length === 0 ? (
