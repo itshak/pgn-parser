@@ -28,6 +28,15 @@ export interface Game {
     black?: {
         name: string;
     };
+    event?: string;
+    site?: string;
+    date?: string;
+    round?: string;
+    whiteElo?: string;
+    blackElo?: string;
+    timeControl?: string;
+    termination?: string;
+    tags: Record<string, string>;
 }
 export interface Player {
     color: string;

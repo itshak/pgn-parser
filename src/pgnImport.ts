@@ -50,8 +50,21 @@ export default function (pgn: string): AnalyseData {
   const variantKey: VariantKey = rulesToVariantKey[rules] || rules;
   const variantName = makeVariant(rules) || variantKey;
 
-  const white = headers.get('white');
-  const black = headers.get('black');
+  const tags: Record<string, string> = {};
+  for (const [key, value] of game.headers) {
+    tags[key] = value;
+  }
+
+  const white = tags.White;
+  const black = tags.Black;
+  const event = tags.Event;
+  const site = tags.Site;
+  const date = tags.Date;
+  const round = tags.Round;
+  const whiteElo = tags.WhiteElo;
+  const blackElo = tags.BlackElo;
+  const timeControl = tags.TimeControl;
+  const termination = tags.Termination;
 
   return {
     game: {
@@ -59,7 +72,7 @@ export default function (pgn: string): AnalyseData {
       id: 'synthetic',
       opening: undefined, // TODO
       player: start.turn,
-      result: game.headers.get('Result') || '*-',
+      result: tags.Result || '*-',
       status: { id: 20, name: 'started' },
       turns: root.children.length > 0 ? Math.ceil(root.children[root.children.length - 1].ply / 2) : 0,
       variant: {
@@ -69,6 +82,15 @@ export default function (pgn: string): AnalyseData {
       },
       white: white ? { name: white } : undefined,
       black: black ? { name: black } : undefined,
+      event: event || undefined,
+      site: site || undefined,
+      date: date || undefined,
+      round: round || undefined,
+      whiteElo: whiteElo || undefined,
+      blackElo: blackElo || undefined,
+      timeControl: timeControl || undefined,
+      termination: termination || undefined,
+      tags,
     },
     player: { color: 'white', name: white } as Player,
     opponent: { color: 'black', name: black } as Player,

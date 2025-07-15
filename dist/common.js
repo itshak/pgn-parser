@@ -1,12 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.requestIdleCallback = exports.onClickAway = exports.scrollTo = exports.scrollToInnerSelector = exports.memoize = exports.toggle = exports.withEffect = exports.propWithEffect = exports.prop = exports.notEmpty = exports.isEmpty = exports.notNull = exports.defined = void 0;
+exports.requestIdleCallback = exports.scrollTo = exports.scrollToInnerSelector = exports.memoize = exports.toggle = exports.withEffect = exports.propWithEffect = exports.prop = exports.notEmpty = exports.isEmpty = exports.notNull = exports.defined = void 0;
 exports.hyphenToCamel = hyphenToCamel;
 exports.escapeHtml = escapeHtml;
 exports.frag = frag;
 exports.myUserId = myUserId;
 exports.myUsername = myUsername;
-exports.repeater = repeater;
 const defined = (value) => value !== undefined;
 exports.defined = defined;
 const notNull = (value) => value !== null && value !== undefined;
@@ -73,17 +72,6 @@ const scrollTo = (el, target, horiz = false) => {
             : (el.scrollTop = target.offsetTop - el.offsetHeight / 2 + target.offsetHeight / 2);
 };
 exports.scrollTo = scrollTo;
-const onClickAway = (f) => (el) => {
-    const listen = () => document.addEventListener('click', function listener(e) {
-        if (!document.body.contains(el))
-            document.removeEventListener('click', listener);
-        if (el.contains(e.target))
-            return;
-        f();
-    });
-    setTimeout(listen, 300);
-};
-exports.onClickAway = onClickAway;
 function hyphenToCamel(str) {
     return str.replace(/-([a-z])/g, g => g[1].toUpperCase());
 }
@@ -116,21 +104,4 @@ function myUserId() {
 }
 function myUsername() {
     return document.body.dataset.username;
-}
-function repeater(f, e, additionalStopCond) {
-    let timeout = undefined;
-    const delay = (function* () {
-        yield 500;
-        for (let d = 350;;)
-            yield Math.max(100, (d *= 14 / 15));
-    })();
-    const repeat = () => {
-        f();
-        timeout = setTimeout(repeat, delay.next().value);
-        if (additionalStopCond === null || additionalStopCond === void 0 ? void 0 : additionalStopCond())
-            clearTimeout(timeout);
-    };
-    repeat();
-    const eventName = e.type === 'touchstart' ? 'touchend' : 'mouseup';
-    document.addEventListener(eventName, () => clearTimeout(timeout), { once: true });
 }

@@ -40,15 +40,27 @@ function default_1(pgn) {
     const rules = (0, pgn_1.parseVariant)(headers.get('variant')) || 'chess';
     const variantKey = rulesToVariantKey[rules] || rules;
     const variantName = (0, pgn_1.makeVariant)(rules) || variantKey;
-    const white = headers.get('white');
-    const black = headers.get('black');
+    const tags = {};
+    for (const [key, value] of game.headers) {
+        tags[key] = value;
+    }
+    const white = tags.White;
+    const black = tags.Black;
+    const event = tags.Event;
+    const site = tags.Site;
+    const date = tags.Date;
+    const round = tags.Round;
+    const whiteElo = tags.WhiteElo;
+    const blackElo = tags.BlackElo;
+    const timeControl = tags.TimeControl;
+    const termination = tags.Termination;
     return {
         game: {
             fen,
             id: 'synthetic',
             opening: undefined, // TODO
             player: start.turn,
-            result: game.headers.get('Result') || '*-',
+            result: tags.Result || '*-',
             status: { id: 20, name: 'started' },
             turns: root.children.length > 0 ? Math.ceil(root.children[root.children.length - 1].ply / 2) : 0,
             variant: {
@@ -58,6 +70,15 @@ function default_1(pgn) {
             },
             white: white ? { name: white } : undefined,
             black: black ? { name: black } : undefined,
+            event: event || undefined,
+            site: site || undefined,
+            date: date || undefined,
+            round: round || undefined,
+            whiteElo: whiteElo || undefined,
+            blackElo: blackElo || undefined,
+            timeControl: timeControl || undefined,
+            termination: termination || undefined,
+            tags,
         },
         player: { color: 'white', name: white },
         opponent: { color: 'black', name: black },
